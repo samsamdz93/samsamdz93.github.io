@@ -1,0 +1,17 @@
+body{
+  background-color: #FFFFFF
+}
+tr{
+  height: 50;
+  border-color: blue;
+  border=0
+}
+td{
+  width: 50;
+  text-align: center;
+  border-color: blue;
+  border-radius:4px;
+}
+td:hover{
+  filter: brightness(120%);
+}
