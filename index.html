@@ -1,0 +1,368 @@
+<html lang="en" dir="ltr">
+  <head>
+    <title> Dau'mineur </title>
+    <link rel="stylesheet" href="fond.css">
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <script>
+
+      couleur=Array()
+      couleur.push("blue","green","red","black","brown","purple","brown","red")
+      etat_jeu=0
+      bombes=Array()
+      oqp=Array()
+      drapeaux=Array()
+      nb_defaite=parseInt(sessionStorage.getItem("nb_defaite"))
+      if (isNaN(nb_defaite)){
+        nb_defaite=0
+      }
+      nb_victoire=parseInt(sessionStorage.getItem("nb_victoire"))
+      if (isNaN(nb_victoire)){
+        nb_victoire=0
+      }
+      t=0
+      document.oncontextmenu=clicDroit
+
+      haut=Array()
+      haut.push(2,3,4,5,6,7,8,9)
+      bas=Array()
+      bas.push(72,73,74,75,76,77,78,79)
+      droite=Array()
+      droite.push(20,30,40,50,60,70)
+      gauche=Array()
+      gauche.push(11,21,31,41,51,61)
+
+      function clicDroit(a){
+        a.preventDefault()
+      }
+
+      function nombreAlea(deb,fin){//<!--renvoie un nombre aléatoire entre deb et fin,je lutilise pour placer les bombes-->
+        x=Math.random()
+        return Math.floor((fin-deb+1)*x)+deb
+      }
+
+      function premier_placement(x){//<!--renvoie la liste des bombes et la liste des cases jouées après que le joueur lance le jeu-->
+        i=12
+        A=Array()
+        B=Array()
+        A.push(x)
+        if (haut.includes(x)){
+          A.push(x-1,x+1,x+10,x+9,x+11)
+        }
+        else if (bas.includes(x)){
+          A.push(x+1,x-1,x-10,x-9,x-11)
+        }
+        else if (droite.includes(x)){
+          A.push(x-1,x-10,x+10,x-11,x+9)
+        }
+        else if (gauche.includes(x)){
+          A.push(x+1,x-10,x+10,x+11,x-9)
+        }
+        else if (x==80){
+          A.push(x-10,x-1,x-11)
+        }
+        else if (x==71){
+          A.push(x+1,x-10,x-9)
+        }
+        else if (x==10){
+          A.push(x-1,x+10,x+9)
+        }
+        else if (x==1){
+          A.push(x+1,x+10,x+11)
+        }
+        else{
+          A.push(x-11,x-10,x-9,x-1,x+1,x+9,x+10,x+11)
+        }
+
+        while (i>0){
+          a=nombreAlea(1,80)
+          if ((A.includes(a)==false)&&(B.includes(a)==false)){
+            B.push(a)
+            i=i-1
+          }
+        }
+        return [A,B]
+      }
+
+      function start(x){//<!--lalgorithme du premier tour du joueur-->
+        listes=premier_placement(x)
+        oqp1=listes[0]
+        bombes=listes[1]
+        for(i=0; i<oqp1.length; i++){
+          jouer(oqp1[i])
+        }
+        for(i=0; i<oqp.length; i++){
+          document.getElementById(oqp[i]).bgColor="#f6ff9c"
+        }
+        document.getElementById("para").innerHTML="Temps : <span id=para1>0</span>"
+        temps=setInterval(chrono,1000)
+      }
+
+      function intersection(A,B){//<!--renvoie A inter B-->
+        return A.filter(elem => B.includes(elem))
+      }
+
+      function prive(A,B){//<!--renvoie A privé de B-->
+        return A.filter(elem => (B.includes(elem)==false))
+      }
+
+      function nbr_bombes(x){//<!--renvoie le nombre de bombes autour de la case x-->
+        A=Array()
+        if (haut.includes(x)){
+          A.push(x-1,x+1,x+10,x+9,x+11)
+        }
+        else if (bas.includes(x)){
+          A.push(x+1,x-1,x-10,x-9,x-11)
+        }
+        else if (droite.includes(x)){
+          A.push(x-1,x-10,x+10,x-11,x+9)
+        }
+        else if (gauche.includes(x)){
+          A.push(x+1,x-10,x+10,x+11,x-9)
+        }
+        else if (x==80){
+          A.push(x-10,x-1,x-11)
+        }
+        else if (x==71){
+          A.push(x+1,x-10,x-9)
+        }
+        else if (x==10){
+          A.push(x-1,x+10,x+9)
+        }
+        else if (x==1){
+          A.push(x+1,x+10,x+11)
+        }
+        else{
+          A.push(x-11,x-10,x-9,x-1,x+1,x+9,x+10,x+11)
+        }
+        v=intersection(A,bombes)
+        return [v,A,v.length]
+      }
+
+      function voisin_vide(x){//<!--détermine si x a aucune bombe autour et renvoie sa liste de voisins sans bombes-->
+        inter=nbr_bombes(x)
+        inter0=inter[0]
+        voisins=inter[1]
+        return [((inter0.length==0)),voisins]
+      }
+
+      function ajouter(S,L){<!--S prend la valeur de S union L-->
+        for(i=0; i<L.length; i++){
+          if (S.includes(L[i])==false){
+            S.push(L[i])
+          }
+        }
+      }
+
+      function jouer(x){//<!--lalgorithme de jeu quand le joueur clique sur la case x-->
+        if ((bombes.includes(x))&&(drapeaux.includes(x)==false)){
+          console.log("perdu")
+          etat_jeu=3
+          clearInterval(temps)
+          document.getElementById("para").innerHTML="PERDU"
+          document.getElementById("centre").innerHTML="<img src=titanic.png alt=titanic><br><br><button onclick='rafraichir()'>Rejouer</button>"
+          sessionStorage.setItem("nb_defaite",nb_defaite+1)
+        }
+        else if((oqp.includes(x)==false)&&(drapeaux.includes(x)==false)){
+          cases_vides=Array()
+          S=Array()
+          S.push(x)
+          while (S.length>0){
+            y=S.pop()
+            cases_vides.push(y)
+            document.getElementById(y).bgColor="#f6ff9c"
+            n=nbr_bombes(y)[2]
+            if (n>0){
+              document.getElementById(y).innerHTML=n
+              document.getElementById(y).style.color=couleur[n-1]
+            }
+            res=voisin_vide(y)
+            estVide=res[0]
+            voisins=res[1]
+            if (estVide){
+              voisins=prive(voisins,cases_vides)
+              ajouter(S,voisins)
+            }
+          }
+          ajouter(oqp,cases_vides)
+          if (gagner()){
+            console.log("gagné")
+            etat_jeu=2
+            clearInterval(temps)
+            document.getElementById("para").innerHTML="Bien joué! tu a mis <span id=para1></span> secondes"
+            document.getElementById("para1").innerHTML=t
+            document.getElementById("centre").innerHTML="<img src=dauphin_content.webp alt=victoire><br><br><button onclick='rafraichir()'>Rejouer</button>"
+            sessionStorage.setItem("nb_victoire",nb_victoire+1)
+          }
+        }
+      }
+
+      function rafraichir(){
+        location.reload()
+      }
+
+      function jouer_global(x){//<!--regroupe linitialisation du jeu et les tours en général en une seule fonction-->
+        if (etat_jeu==1){
+          jouer(x)
+        }
+        else if(etat_jeu==0){
+          start(x)
+          etat_jeu=1
+        }
+      }
+
+      function gagner(){//<!--renvoie le booleen qui dis si le joueur a gagné ou non-->
+        total_cases=Array()
+        for(i=0;i<oqp.length;i++){
+          total_cases.push(oqp[i])
+        }
+        ajouter(total_cases,bombes)
+        inter=intersection(bombes,oqp)
+        return (total_cases.length==80)&&(inter.length==0)
+      }
+
+      function placer_drapeau(x){<!--//place un drapeau(un dauphin) a la case x-->
+        if (document.getElementById(x).innerHTML=='<img src=\"dauph.png\" alt=\"X\" width=\"50\">'){
+          document.getElementById(x).innerHTML="?"
+          drapeaux=prive(drapeaux,[x])
+        }
+        else if(document.getElementById(x).innerHTML=="?"){
+          document.getElementById(x).innerHTML=""
+        }
+        else if (oqp.includes(x)==false){
+          document.getElementById(x).innerHTML="<img src=dauph.png width=50 alt=X>"
+          drapeaux.push(x)
+        }
+      }
+
+      function chrono(){//<!--La fonction qui calcule le temps du joueur-->
+        t=t+1
+        document.getElementById("para1").innerHTML=t
+      }
+
+
+
+    </script>
+    <p align=center>
+      <img src="dauph.png" alt="dauphin" width=150>
+      <img src="daumineur.jpg" alt="daumineur" width=250>
+      <img src="dauph.png" alt="dauphin" width=150>
+    </p>
+    <b><font face="comic sans ms">
+      <p align=center style="color:#001958">
+        Victoires :
+        <span id="abcde">0</span>
+        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+        Defaites :
+        <span id="def">0</span>
+      </p>
+    <h2 id="para" align=center name=para style="color:#001958">Clique sur une case pour commencer</h2>
+    <p id=centre align=center>
+    <table align=center border=5 bgColor=#163a77 style="border-style:double;border-color:blue;border-radius:15px"> <!--Le tableau a été écrit grace a python-->
+      <tr>
+      	<td id="1" bgColor=#a2ccf9 onclick=jouer_global(1) oncontextmenu=placer_drapeau(1)></td>
+      	<td id="2" bgColor=#6FA9E6 onclick=jouer_global(2) oncontextmenu=placer_drapeau(2)></td>
+      	<td id="3" bgColor=#a2ccf9 onclick=jouer_global(3) oncontextmenu=placer_drapeau(3)></td>
+      	<td id="4" bgColor=#6FA9E6 onclick=jouer_global(4) oncontextmenu=placer_drapeau(4)></td>
+      	<td id="5" bgColor=#a2ccf9 onclick=jouer_global(5) oncontextmenu=placer_drapeau(5)></td>
+      	<td id="6" bgColor=#6FA9E6 onclick=jouer_global(6) oncontextmenu=placer_drapeau(6)></td>
+      	<td id="7" bgColor=#a2ccf9 onclick=jouer_global(7) oncontextmenu=placer_drapeau(7)></td>
+      	<td id="8" bgColor=#6FA9E6 onclick=jouer_global(8) oncontextmenu=placer_drapeau(8)></td>
+      	<td id="9" bgColor=#a2ccf9 onclick=jouer_global(9) oncontextmenu=placer_drapeau(9)></td>
+      	<td id="10" bgColor=#6FA9E6 onclick=jouer_global(10) oncontextmenu=placer_drapeau(10)></td>
+      </tr>
+      <tr>
+      	<td id="11" bgColor=#6FA9E6 onclick=jouer_global(11) oncontextmenu=placer_drapeau(11)></td>
+      	<td id="12" bgColor=#a2ccf9 onclick=jouer_global(12) oncontextmenu=placer_drapeau(12)></td>
+      	<td id="13" bgColor=#6FA9E6 onclick=jouer_global(13) oncontextmenu=placer_drapeau(13)></td>
+      	<td id="14" bgColor=#a2ccf9 onclick=jouer_global(14) oncontextmenu=placer_drapeau(14)></td>
+      	<td id="15" bgColor=#6FA9E6 onclick=jouer_global(15) oncontextmenu=placer_drapeau(15)></td>
+      	<td id="16" bgColor=#a2ccf9 onclick=jouer_global(16) oncontextmenu=placer_drapeau(16)></td>
+      	<td id="17" bgColor=#6FA9E6 onclick=jouer_global(17) oncontextmenu=placer_drapeau(17)></td>
+      	<td id="18" bgColor=#a2ccf9 onclick=jouer_global(18) oncontextmenu=placer_drapeau(18)></td>
+      	<td id="19" bgColor=#6FA9E6 onclick=jouer_global(19) oncontextmenu=placer_drapeau(19)></td>
+      	<td id="20" bgColor=#a2ccf9 onclick=jouer_global(20) oncontextmenu=placer_drapeau(20)></td>
+      </tr>
+      <tr>
+      	<td id="21" bgColor=#a2ccf9 onclick=jouer_global(21) oncontextmenu=placer_drapeau(21)></td>
+      	<td id="22" bgColor=#6FA9E6 onclick=jouer_global(22) oncontextmenu=placer_drapeau(22)></td>
+      	<td id="23" bgColor=#a2ccf9 onclick=jouer_global(23) oncontextmenu=placer_drapeau(23)></td>
+      	<td id="24" bgColor=#6FA9E6 onclick=jouer_global(24) oncontextmenu=placer_drapeau(24)></td>
+      	<td id="25" bgColor=#a2ccf9 onclick=jouer_global(25) oncontextmenu=placer_drapeau(25)></td>
+      	<td id="26" bgColor=#6FA9E6 onclick=jouer_global(26) oncontextmenu=placer_drapeau(26)></td>
+      	<td id="27" bgColor=#a2ccf9 onclick=jouer_global(27) oncontextmenu=placer_drapeau(27)></td>
+      	<td id="28" bgColor=#6FA9E6 onclick=jouer_global(28) oncontextmenu=placer_drapeau(28)></td>
+      	<td id="29" bgColor=#a2ccf9 onclick=jouer_global(29) oncontextmenu=placer_drapeau(29)></td>
+      	<td id="30" bgColor=#6FA9E6 onclick=jouer_global(30) oncontextmenu=placer_drapeau(30)></td>
+      </tr>
+      <tr>
+      	<td id="31" bgColor=#6FA9E6 onclick=jouer_global(31) oncontextmenu=placer_drapeau(31)></td>
+      	<td id="32" bgColor=#a2ccf9 onclick=jouer_global(32) oncontextmenu=placer_drapeau(32)></td>
+      	<td id="33" bgColor=#6FA9E6 onclick=jouer_global(33) oncontextmenu=placer_drapeau(33)></td>
+      	<td id="34" bgColor=#a2ccf9 onclick=jouer_global(34) oncontextmenu=placer_drapeau(34)></td>
+      	<td id="35" bgColor=#6FA9E6 onclick=jouer_global(35) oncontextmenu=placer_drapeau(35)></td>
+      	<td id="36" bgColor=#a2ccf9 onclick=jouer_global(36) oncontextmenu=placer_drapeau(36)></td>
+      	<td id="37" bgColor=#6FA9E6 onclick=jouer_global(37) oncontextmenu=placer_drapeau(37)></td>
+      	<td id="38" bgColor=#a2ccf9 onclick=jouer_global(38) oncontextmenu=placer_drapeau(38)></td>
+      	<td id="39" bgColor=#6FA9E6 onclick=jouer_global(39) oncontextmenu=placer_drapeau(39)></td>
+      	<td id="40" bgColor=#a2ccf9 onclick=jouer_global(40) oncontextmenu=placer_drapeau(40)></td>
+      </tr>
+      <tr>
+      	<td id="41" bgColor=#a2ccf9 onclick=jouer_global(41) oncontextmenu=placer_drapeau(41)></td>
+      	<td id="42" bgColor=#6FA9E6 onclick=jouer_global(42) oncontextmenu=placer_drapeau(42)></td>
+      	<td id="43" bgColor=#a2ccf9 onclick=jouer_global(43) oncontextmenu=placer_drapeau(43)></td>
+      	<td id="44" bgColor=#6FA9E6 onclick=jouer_global(44) oncontextmenu=placer_drapeau(44)></td>
+      	<td id="45" bgColor=#a2ccf9 onclick=jouer_global(45) oncontextmenu=placer_drapeau(45)></td>
+      	<td id="46" bgColor=#6FA9E6 onclick=jouer_global(46) oncontextmenu=placer_drapeau(46)></td>
+      	<td id="47" bgColor=#a2ccf9 onclick=jouer_global(47) oncontextmenu=placer_drapeau(47)></td>
+      	<td id="48" bgColor=#6FA9E6 onclick=jouer_global(48) oncontextmenu=placer_drapeau(48)></td>
+      	<td id="49" bgColor=#a2ccf9 onclick=jouer_global(49) oncontextmenu=placer_drapeau(49)></td>
+      	<td id="50" bgColor=#6FA9E6 onclick=jouer_global(50) oncontextmenu=placer_drapeau(50)></td>
+      </tr>
+      <tr>
+      	<td id="51" bgColor=#6FA9E6 onclick=jouer_global(51) oncontextmenu=placer_drapeau(51)></td>
+      	<td id="52" bgColor=#a2ccf9 onclick=jouer_global(52) oncontextmenu=placer_drapeau(52)></td>
+      	<td id="53" bgColor=#6FA9E6 onclick=jouer_global(53) oncontextmenu=placer_drapeau(53)></td>
+      	<td id="54" bgColor=#a2ccf9 onclick=jouer_global(54) oncontextmenu=placer_drapeau(54)></td>
+      	<td id="55" bgColor=#6FA9E6 onclick=jouer_global(55) oncontextmenu=placer_drapeau(55)></td>
+      	<td id="56" bgColor=#a2ccf9 onclick=jouer_global(56) oncontextmenu=placer_drapeau(56)></td>
+      	<td id="57" bgColor=#6FA9E6 onclick=jouer_global(57) oncontextmenu=placer_drapeau(57)></td>
+      	<td id="58" bgColor=#a2ccf9 onclick=jouer_global(58) oncontextmenu=placer_drapeau(58)></td>
+      	<td id="59" bgColor=#6FA9E6 onclick=jouer_global(59) oncontextmenu=placer_drapeau(59)></td>
+      	<td id="60" bgColor=#a2ccf9 onclick=jouer_global(60) oncontextmenu=placer_drapeau(60)></td>
+      </tr>
+      <tr>
+      	<td id="61" bgColor=#a2ccf9 onclick=jouer_global(61) oncontextmenu=placer_drapeau(61)></td>
+      	<td id="62" bgColor=#6FA9E6 onclick=jouer_global(62) oncontextmenu=placer_drapeau(62)></td>
+      	<td id="63" bgColor=#a2ccf9 onclick=jouer_global(63) oncontextmenu=placer_drapeau(63)></td>
+      	<td id="64" bgColor=#6FA9E6 onclick=jouer_global(64) oncontextmenu=placer_drapeau(64)></td>
+      	<td id="65" bgColor=#a2ccf9 onclick=jouer_global(65) oncontextmenu=placer_drapeau(65)></td>
+      	<td id="66" bgColor=#6FA9E6 onclick=jouer_global(66) oncontextmenu=placer_drapeau(66)></td>
+      	<td id="67" bgColor=#a2ccf9 onclick=jouer_global(67) oncontextmenu=placer_drapeau(67)></td>
+      	<td id="68" bgColor=#6FA9E6 onclick=jouer_global(68) oncontextmenu=placer_drapeau(68)></td>
+      	<td id="69" bgColor=#a2ccf9 onclick=jouer_global(69) oncontextmenu=placer_drapeau(69)></td>
+      	<td id="70" bgColor=#6FA9E6 onclick=jouer_global(70) oncontextmenu=placer_drapeau(70)></td>
+      </tr>
+      <tr>
+      	<td id="71" bgColor=#6FA9E6 onclick=jouer_global(71) oncontextmenu=placer_drapeau(71)></td>
+      	<td id="72" bgColor=#a2ccf9 onclick=jouer_global(72) oncontextmenu=placer_drapeau(72)></td>
+      	<td id="73" bgColor=#6FA9E6 onclick=jouer_global(73) oncontextmenu=placer_drapeau(73)></td>
+      	<td id="74" bgColor=#a2ccf9 onclick=jouer_global(74) oncontextmenu=placer_drapeau(74)></td>
+      	<td id="75" bgColor=#6FA9E6 onclick=jouer_global(75) oncontextmenu=placer_drapeau(75)></td>
+      	<td id="76" bgColor=#a2ccf9 onclick=jouer_global(76) oncontextmenu=placer_drapeau(76)></td>
+      	<td id="77" bgColor=#6FA9E6 onclick=jouer_global(77) oncontextmenu=placer_drapeau(77)></td>
+      	<td id="78" bgColor=#a2ccf9 onclick=jouer_global(78) oncontextmenu=placer_drapeau(78)></td>
+      	<td id="79" bgColor=#6FA9E6 onclick=jouer_global(79) oncontextmenu=placer_drapeau(79)></td>
+      	<td id="80" bgColor=#a2ccf9 onclick=jouer_global(80) oncontextmenu=placer_drapeau(80)></td>
+      </tr>
+    </table>
+  </p>
+  </b></font>
+  <br><br><br><br><br><br><br>
+  <script>
+  document.getElementById("abcde").innerHTML=nb_victoire
+  document.getElementById("def").innerHTML=nb_defaite
+  </script>
+  </body>
+</html>
